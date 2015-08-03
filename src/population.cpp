@@ -1,24 +1,22 @@
 #include <iostream>
 #include <random>
 #include <boost/format.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/logger.h>
+
 
 #include "population.h"
 
 
 
-
 void Population::initialize() {
-
+	std::uniform_int_distribution<int> u(0, this->popsize - 1);
+	this->uniform_pop = u;
 }
 
-void Population::set_population_size(int popsize) {
-	this->popsize = popsize;
-}
-void Population::set_numloci(int numloci) {
-	this->numloci = numloci;
-}
-void Population::set_inittraits(int inittraits) {
-	this->inittraits = inittraits;
+
+void Population::test_random() {
+	for(int i = 0; i < 20; i++) SPDLOG_DEBUG(log, "testing generator: {}", this->uniform_pop(this->mt));
 }
 
 std::string Population::dbg_print() {

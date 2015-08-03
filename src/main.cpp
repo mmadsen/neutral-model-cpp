@@ -1,15 +1,19 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <spdlog/spdlog.h>
+#include <random>	
 
 #include "population.h"
 
-#define LOGD clog->debug()
+
+
 
 using namespace std;
 namespace po = boost::program_options;
 namespace spd = spdlog;
 
+
+#define LOGD clog->debug()
 
 int main(int argc, char** argv) {
 	po::variables_map vm;
@@ -20,8 +24,11 @@ int main(int argc, char** argv) {
 	int inittraits;
 	std::string logfile;
 	int debug;
+	std::random_device rd;
+	std::mt19937_64 mt(rd());
+	std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
-	auto clog = spd::stdout_logger_mt("console");
+	auto clog = spdlog::stdout_logger_mt("console");
 
 	clog->info() << "Neutral Cultural Transmission in C++ Framework V.0.1";
 
@@ -66,10 +73,10 @@ int main(int argc, char** argv) {
 	}
 
 	clog->info("Constructing population");
-	Population* pop = new Population();
-	pop->set_population_size(popsize);
-	pop->set_numloci(numloci);
-	pop->set_inittraits(inittraits);
+
+	Population* pop = new Population(popsize, numloci, inittraits, mt, clog);
+	pop->initialize();
+
 
 	SPDLOG_DEBUG(clog, pop->dbg_print())
 
