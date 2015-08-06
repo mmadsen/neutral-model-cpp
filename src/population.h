@@ -9,6 +9,8 @@ class Population {
 	std::uniform_int_distribution<int> uniform_pop;
 	std::mt19937_64 mt;
 	std::shared_ptr<spdlog::logger> log;
+	std::vector<int> next_trait;
+	int* population_traits;
 
 public:
 	Population(int p,
@@ -17,6 +19,7 @@ public:
 		std::mt19937_64 m,
 		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), mt(m), log(l)
 	{}
+	~Population();
 	void initialize();
 
 	void test_random();

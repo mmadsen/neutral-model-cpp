@@ -4,6 +4,18 @@
 		"selected_items":
 		[
 			[
+				"next",
+				"next_trait"
+			],
+			[
+				"uniform",
+				"uniform_int"
+			],
+			[
+				"initi",
+				"inittraits"
+			],
+			[
 				"url",
 				"url"
 			],
@@ -15,6 +27,30 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "src/main.cpp",
+			"settings":
+			{
+				"buffer_size": 2265,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/population.cpp",
+			"settings":
+			{
+				"buffer_size": 1353,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/population.h",
+			"settings":
+			{
+				"buffer_size": 501,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "Packages/Makefile/Make.sublime-build",
 	"build_system_choices":
@@ -106,6 +142,8 @@
 	],
 	"file_history":
 	[
+		"/Users/mark/src/neutral-model-cpp/src/main.d",
+		"/Users/mark/src/neutral-model-cpp/src/global.cpp",
 		"/Users/mark/src/neutral-model-cpp/src/main.cpp",
 		"/Users/mark/src/neutral-model-cpp/lib/spdlog/tweakme.h",
 		"/Users/mark/src/neutral-model-cpp/Makefile-clang",
@@ -231,9 +269,7 @@
 		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2012-07-25-approaches-evolution-culture.md",
 		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-03-31-darwinian-populational-models.md",
 		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-04-10-psu-talk-notes.md",
-		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-05-27-time-in-archaeology.md",
-		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-06-05-psu-talk-presentation.md",
-		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-07-10-time-perspectivism-annotated-bib.md"
+		"/Users/mark/Dropbox/Research/websites/lnraw/_posts/2013-05-27-time-in-archaeology.md"
 	],
 	"find":
 	{
@@ -279,8 +315,94 @@
 	"groups":
 	[
 		{
+			"selected": 2,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "src/main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2265,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2204,
+								2204
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 441.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/population.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1353,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1001,
+								1001
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/population.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 501,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								236,
+								236
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -351,7 +473,7 @@
 		[
 			[
 				"",
-				"~/Dropbox/Research/Dissertation Project/manuscripts/dissertation/draft.sublime-project"
+				"~/Dropbox/Research/projects/coarsegraining/experiment-ctmixtures/ctmixtures.sublime-project"
 			]
 		],
 		"width": 380.0

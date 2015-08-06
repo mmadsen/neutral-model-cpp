@@ -60,7 +60,7 @@
 MY_CFLAGS = -I ./lib -I /usr/local/Cellar/igraph/0.7.1/include -std=c++11
 
 # The linker options.
-MY_LIBS   = -L /usr/local/lib -L /usr/local/Cellar/igraph/0.7.1/lib
+MY_LIBS   = -L . 
 
 # The pre-processor options used by the cpp (man cpp for more).
 CPPFLAGS  = -Wall
