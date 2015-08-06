@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <algorithm>
 #include <boost/format.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
@@ -10,9 +11,8 @@
 
 
 Population::~Population() {
-
+	free(population_traits);
 }
-
 
 
 void Population::initialize() {
@@ -52,7 +52,7 @@ void Population::initialize() {
 	}
 
 
-	std::cout << "debug: initialized population (rows are loci, columns are indiv)" << std::endl;
+	SPDLOG_DEBUG(log, "initialized population (rows are loci, columns are indivuals)");
 
 	//print with loci as rows, columns as indiv
 	for(int locus = 0; locus < numloci; locus++) {
@@ -65,12 +65,49 @@ void Population::initialize() {
 
 
 
+
 }
 
 
-void Population::test_random() {
-	for(int i = 0; i < 20; i++) SPDLOG_DEBUG(log, "testing generator: {}", this->uniform_pop(this->mt));
+void Population::tabulate_trait_freq() {
+
+	// allocate space for the largest value in any locus
+	// array of counts will be a rectangular array numloci * largest_locus_value
+	// technically, the largest_locus_value is 1 greater than any trait value seen at any locus, 
+	// so we trimmed by one
+	auto result = std::max_element(next_trait.begin(), next_trait.end());
+	int largest_locus_value = *result - 1;
+	int size_count_array = numloci * largest_locus_value;
+	SPDLOG_DEBUG(log, "initializing count array as {}x{} block, size {}", numloci, largest_locus_value, size_count_array);
+	locus_counts = (int*) malloc(size_count_array * sizeof(int));
+	memset(locus_counts, 0, size_count_array * sizeof(int));
+
+	for(int indiv = 0; indiv < popsize; indiv++) {
+		for(int locus = 0; locus < numloci; locus++) {
+			int trait_at_locus = population_traits[locus * popsize + indiv];
+			++locus_counts[locus * largest_locus_value + trait_at_locus];
+		}
+	}
+
+	SPDLOG_DEBUG(log, "counted traits at loci");
+	// print with loci as rows, traits as columns
+	for(int locus = 0; locus < numloci; locus++) {
+		std::cout << "locus " << locus << ": ";
+		for(int trait = 0; trait < largest_locus_value; trait++) {
+			std::cout << locus_counts[locus * largest_locus_value + trait] << " ";
+		}
+		std::cout << std::endl;
+	}
+	
+	// TEMP:  we need to do something with the trait frequencies when we've counted them
+	free(locus_counts);
 }
+
+
+
+// void Population::test_random() {
+// 	for(int i = 0; i < 20; i++) SPDLOG_DEBUG(log, "testing generator: {}", this->uniform_pop(this->mt));
+// }
 
 std::string Population::dbg_print() {
 	boost::format fmt("[Population %4% | popsize: %1% numloci: %2% inittraits: %3%]");

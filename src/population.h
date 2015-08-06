@@ -11,6 +11,7 @@ class Population {
 	std::shared_ptr<spdlog::logger> log;
 	std::vector<int> next_trait;
 	int* population_traits;
+	int* locus_counts;
 
 public:
 	Population(int p,
@@ -21,8 +22,9 @@ public:
 	{}
 	~Population();
 	void initialize();
+	void tabulate_trait_freq();
 
-	void test_random();
+	// void test_random();
 
 	std::string dbg_print();
 

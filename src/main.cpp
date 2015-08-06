@@ -1,22 +1,19 @@
 #include <iostream>
-#include <boost/program_options.hpp>
 #include <spdlog/spdlog.h>
 #include <random>	
+#include <tclap/CmdLine.h>
 
 #include "population.h"
 
 
-
-
 using namespace std;
-namespace po = boost::program_options;
 namespace spd = spdlog;
 
 
 #define LOGD clog->debug()
 
 int main(int argc, char** argv) {
-	po::variables_map vm;
+	std::string VERSION = "0.0.1";
 	int popsize;
 	double innovrate;
 	int numloci;
@@ -30,52 +27,51 @@ int main(int argc, char** argv) {
 
 	auto clog = spdlog::stdout_logger_mt("console");
 
-	clog->info() << "Neutral Cultural Transmission in C++ Framework V.0.1";
+	clog->info() << "Neutral Cultural Transmission in C++ Framework Version: " <<  VERSION;
+
 
 	try {
-		po::options_description desc("Allowed options");
-		desc.add_options()
-		    ("help", "produce help message")
-		    ("popsize", po::value<int>(), "Population size")
-		    ("innovrate", po::value<double>(), "Innovation rate per time step per individual (e.g., 0.1 equals 10 percent chance of a mutation")
-		    ("numloci", po::value<int>(), "Number of independent dimensions or loci to evolve within the population")
-		    ("simlength", po::value<int>(), "Length of the simulation in elemental copying steps")
-		    ("inittraits", po::value<int>(), "Number of initial traits present at each dimension/locus")
-		    ("logfile", po::value<std::string>()->default_value("logfile.txt"), "Path for log file and filename (e.g., /tmp/test.log")
-		    ("debug", po::value<int>(), "set debugging level");
+		TCLAP::CmdLine cmd("Neutral Cultural Transmission in C++ Framework", ' ', VERSION);
+
+		TCLAP::ValueArg<int> p("p","popsize","Population size",true,100,"integer");
+		TCLAP::ValueArg<int> nl("l", "numloci","Number of independent dimensions/loci to evolve within the population",true,4,"integer");
+		TCLAP::ValueArg<double> ir("i", "innovrate","Innovation rate per time step per individual (e.g., 0.1 equals 10 percent change of an innovation per time step",true,0.001,"double");
+		TCLAP::ValueArg<int> len("s", "simlength","Length of the simulation in generations of popsize individuals",true,1000,"integer");
+		TCLAP::ValueArg<int> it("t","inittraits","Number of initial traits present at each dimension/locus",true,4,"integer");
+		TCLAP::ValueArg<int> d("d", "debug", "Set debugging level, with 0 or absence indicating debug output is off",false,0,"integer");
+		TCLAP::ValueArg<std::string> f("f","logfile","Path to log file and filename (e.g., /tmp/test.log",false,"","string");
 
 
-		po::store(po::parse_command_line(argc, argv, desc), vm);
-		po::notify(vm);    
+		cmd.add(p);
+		cmd.add(nl);
+		cmd.add(ir);
+		cmd.add(len);
+		cmd.add(it);
+		cmd.add(d);
+		cmd.add(f);
+		cmd.parse( argc, argv );
 
-		if(vm.count("help")) {
-	    	cout << desc << endl;
-	    	return 1;
-		}
+		popsize = p.getValue();
+		numloci = nl.getValue();
+		inittraits = it.getValue();
+		innovrate = ir.getValue();
+		simlength = len.getValue();
+		debug = d.getValue();
+		logfile = f.getValue();
 
-		if(vm.count("debug")) {
-			debug = vm["debug"].as<int>();
-			if(debug < 1) { spd::set_level(spd::level::info); }
-			else { spd::set_level(spd::level::debug); }
+	} catch (TCLAP::ArgException &e)  // catch any exceptions
+	{ std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; return 1; }
 
-		}
 
-		popsize = vm["popsize"].as<int>();
-		innovrate = vm["innovrate"].as<double>();
-		numloci = vm["numloci"].as<int>();
-		simlength = vm["simlength"].as<int>();
-		inittraits = vm["inittraits"].as<int>();
+	if(debug < 1) { spd::set_level(spd::level::info); }
+	else { spd::set_level(spd::level::debug); }
 
-	}
-	catch(exception& e) {
-		cerr << "error: " << e.what() << "\n";
-		return 1;
-	}
 
 	clog->info("Constructing population");
 
 	Population* pop = new Population(popsize, numloci, inittraits, mt, clog);
 	pop->initialize();
+	pop->tabulate_trait_freq();
 
 
 	SPDLOG_DEBUG(clog, pop->dbg_print())
