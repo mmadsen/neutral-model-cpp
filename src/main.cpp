@@ -1,6 +1,7 @@
 #include <iostream>
-#include <spdlog/spdlog.h>
 #include <random>	
+#include <sstream>
+#include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
 
 #include "population.h"
@@ -11,6 +12,21 @@ namespace spd = spdlog;
 
 
 #define LOGD clog->debug()
+
+void print_trait_counts(TraitFrequencies* tf,std::shared_ptr<spdlog::logger>& log) {
+	// print with loci as rows, traits as columns
+	int* locus_counts = tf->trait_counts;
+	for(int locus = 0; locus < tf->numloci; locus++) {
+		std::stringstream s;
+		s << "locus " << locus << ": ";
+		for(int trait = 0; trait < tf->max_num_traits; trait++) {
+			s << locus_counts[locus * tf->max_num_traits + trait] << " ";
+		}
+		SPDLOG_DEBUG(log,"{}",s.str());
+	}
+}
+
+
 
 int main(int argc, char** argv) {
 	std::string VERSION = "0.0.1";
@@ -67,14 +83,24 @@ int main(int argc, char** argv) {
 	else { spd::set_level(spd::level::debug); }
 
 
-	clog->info("Constructing population");
+
 
 	Population* pop = new Population(popsize, numloci, inittraits, mt, clog);
+	SPDLOG_DEBUG(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
-	pop->tabulate_trait_freq();
+
+	pop->dbg_log_population();
 
 
-	SPDLOG_DEBUG(clog, pop->dbg_print())
+	TraitFrequencies* tf = pop->tabulate_trait_freq();
+	print_trait_counts(tf,clog);
+	delete tf;
+
+
+
+
+
+
 
 
 

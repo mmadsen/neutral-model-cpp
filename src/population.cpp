@@ -1,11 +1,10 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <sstream>
 #include <boost/format.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
-
-
 
 #include "population.h"
 
@@ -51,36 +50,23 @@ void Population::initialize() {
 		}
 	}
 
-
-	SPDLOG_DEBUG(log, "initialized population (rows are loci, columns are indivuals)");
-
-	//print with loci as rows, columns as indiv
-	for(int locus = 0; locus < numloci; locus++) {
-		std::cout << "locus " << locus << ": ";
-		for(int indiv = 0; indiv < popsize; indiv++) {
-			std::cout << population_traits[locus * popsize + indiv] << " ";
-		}
-		std::cout << std::endl;
-	}
-
-
-
-
 }
 
 
-void Population::tabulate_trait_freq() {
+TraitFrequencies* Population::tabulate_trait_freq() {
 
 	// allocate space for the largest value in any locus
 	// array of counts will be a rectangular array numloci * largest_locus_value
 	// technically, the largest_locus_value is 1 greater than any trait value seen at any locus, 
 	// so we trimmed by one
+	// MEM:  dynamically allocated locus_counts is freed in the destructor of TraitFrequencies
+
 	auto result = std::max_element(next_trait.begin(), next_trait.end());
 	int largest_locus_value = *result - 1;
-	int size_count_array = numloci * largest_locus_value;
-	SPDLOG_DEBUG(log, "initializing count array as {}x{} block, size {}", numloci, largest_locus_value, size_count_array);
-	locus_counts = (int*) malloc(size_count_array * sizeof(int));
-	memset(locus_counts, 0, size_count_array * sizeof(int));
+
+
+	TraitFrequencies* tf = new TraitFrequencies(numloci,largest_locus_value,log);
+	int* locus_counts = tf->trait_counts;
 
 	for(int indiv = 0; indiv < popsize; indiv++) {
 		for(int locus = 0; locus < numloci; locus++) {
@@ -89,19 +75,15 @@ void Population::tabulate_trait_freq() {
 		}
 	}
 
-	SPDLOG_DEBUG(log, "counted traits at loci");
-	// print with loci as rows, traits as columns
-	for(int locus = 0; locus < numloci; locus++) {
-		std::cout << "locus " << locus << ": ";
-		for(int trait = 0; trait < largest_locus_value; trait++) {
-			std::cout << locus_counts[locus * largest_locus_value + trait] << " ";
-		}
-		std::cout << std::endl;
-	}
 	
-	// TEMP:  we need to do something with the trait frequencies when we've counted them
-	free(locus_counts);
+	return tf;
+
+
 }
+
+
+
+
 
 
 
@@ -109,10 +91,23 @@ void Population::tabulate_trait_freq() {
 // 	for(int i = 0; i < 20; i++) SPDLOG_DEBUG(log, "testing generator: {}", this->uniform_pop(this->mt));
 // }
 
-std::string Population::dbg_print() {
+std::string Population::dbg_params() {
 	boost::format fmt("[Population %4% | popsize: %1% numloci: %2% inittraits: %3%]");
 	fmt % this->popsize % this->numloci % this->inittraits % this;
 	return fmt.str();
 }
 
+void Population::dbg_log_population() {
+	SPDLOG_DEBUG(log, "population state: (rows are loci, columns are indivuals)");
+
+	//print with loci as rows, columns as indiv
+	for(int locus = 0; locus < numloci; locus++) {
+		std::stringstream s;
+		s << "locus " << locus << ": ";
+		for(int indiv = 0; indiv < popsize; indiv++) {
+			s << population_traits[locus * popsize + indiv] << " ";
+		}
+		SPDLOG_DEBUG(log,"{}",s.str());
+	}
+}
 

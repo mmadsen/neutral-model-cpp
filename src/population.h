@@ -1,6 +1,34 @@
 #include <random>
 #include <spdlog/spdlog.h>
 
+/** \class TraitFrequencies
+*
+* TraitFrequencies bundles a rectangular array of integers, formatted as a simple 1-D 
+* array for performance, with the dimensions of the rectangular array.  The array 
+* has loci as rows and traits within a locus as columns, so the array is addressed
+* as:  trait_counts[locus * max_num_traits + trait]
+*
+*/
+
+class TraitFrequencies {
+public:
+	int* trait_counts; 
+	int numloci;
+	int max_num_traits;
+	std::shared_ptr<spdlog::logger> log;
+
+	TraitFrequencies(int n, int m, std::shared_ptr<spdlog::logger>& l) : numloci(n), max_num_traits(m), log(l) {
+		int size_count_array = numloci * max_num_traits;
+		trait_counts = (int*) malloc(size_count_array * sizeof(int));
+		SPDLOG_DEBUG(log, "initializing count array {:p} as {}x{} block with size {}", (void*)trait_counts, numloci, max_num_traits,size_count_array);
+		memset(trait_counts, 0, (size_count_array * sizeof(int)));
+	}
+	~TraitFrequencies() { 
+		SPDLOG_DEBUG(log,"deallocating block trait_counts {:p}", (void*)trait_counts); 
+		free(trait_counts);
+	}
+};
+
 
 class Population {
 	int popsize;
@@ -22,10 +50,13 @@ public:
 	{}
 	~Population();
 	void initialize();
-	void tabulate_trait_freq();
 
-	// void test_random();
+	TraitFrequencies* tabulate_trait_freq();
 
-	std::string dbg_print();
+	void step();
 
+
+
+	std::string dbg_params();
+	void dbg_log_population();
 };
