@@ -224,9 +224,11 @@ $(PROGRAM):$(OBJS)
 ifeq ($(SRC_CXX),)              # C program
 	$(LINK.c)   $(OBJS) $(MY_LIBS) -o $@
 	@echo Type ./$@ to execute the program.
+	doxygen Doxyfile
 else                            # C++ program
 	$(LINK.cxx) $(OBJS) $(MY_LIBS) -o $@
 	@echo Type ./$@ to execute the program.
+	doxygen Doxyfile
 endif
 
 ifndef NODEP
@@ -240,6 +242,16 @@ clean:
 
 distclean: clean
 	$(RM) $(DEPS) TAGS
+	rm -rf docs/*
+
+
+docs: FORCE
+	rm -rf docs/*
+	doxygen Doxyfile
+
+FORCE:
+
+
 
 # Show help.
 help:

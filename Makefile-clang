@@ -242,6 +242,12 @@ clean:
 distclean: clean
 	$(RM) $(DEPS) TAGS
 
+docs: FORCE
+	rm -rf docs/*
+	doxygen Doxyfile
+
+FORCE:
+
 # Show help.
 help:
 	@echo 'Generic Makefile for C/C++ Programs (gcmakefile) version 0.5'

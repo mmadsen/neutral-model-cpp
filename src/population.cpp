@@ -8,9 +8,21 @@
 
 #include "population.h"
 
-
+/**
+* Population destructor.  Normally not reached if we run a single population and then exit from main(),
+* but in situations where we might run simulations in a loop, we don't want to leak memory for whole 
+* populations. 
+*/
 Population::~Population() {
+	SPDLOG_DEBUG(log,"deallocating block prev_population_traits {:p}", (void*)prev_population_traits); 
+	SPDLOG_DEBUG(log,"deallocating block population_traits {:p}", (void*)population_traits); 
+#if defined(__INTEL_COMPILER)
+	_mm_free(prev_population_traits);
+	_mm_free(population_traits);
+#else
+	free(prev_population_traits);
 	free(population_traits);
+#endif
 }
 
 
@@ -39,8 +51,13 @@ void Population::initialize() {
 	// which since I want to parallelize over individuals, I will interpret as:
 	//
 	// 		{individual X trait at locus Y} = population_traits[Y * popsize + X]
-
+#if defined(__INTEL_COMPILER)
+	population_traits = (int*) _mm_malloc((numloci * popsize) * sizeof(int), 64);
+	prev_population_traits = (int*) _mm_malloc((numloci * popsize) * sizeof(int),64);
+#else
 	population_traits = (int*) malloc((numloci * popsize) * sizeof(int));
+	prev_population_traits = (int*) malloc((numloci * popsize) * sizeof(int));
+#endif
 
 	std::uniform_int_distribution<int> initial_trait_dist(0, inittraits - 1);
 
@@ -53,7 +70,8 @@ void Population::initialize() {
 }
 
 
-TraitFrequencies* Population::tabulate_trait_freq() {
+
+TraitFrequencies* Population::tabulate_trait_counts() {
 
 	// allocate space for the largest value in any locus
 	// array of counts will be a rectangular array numloci * largest_locus_value
@@ -75,16 +93,35 @@ TraitFrequencies* Population::tabulate_trait_freq() {
 		}
 	}
 
-	
 	return tf;
 
 
 }
 
 
+void Population::step() {
+	// Prepare by copying current state to previous state, before doing transmission 
+	// algorithm
+	swap_population_arrays();
+
+}
 
 
+void Population::swap_population_arrays() {
+	// Start by swapping the population trait arrays, so that we capture the previous state for use
+	//SPDLOG_DEBUG(log, "preswap - prev_population_traits: {:p}", (void*)prev_population_traits);
+	//SPDLOG_DEBUG(log, "preswap - population_traits: {:p}", (void*)population_traits);
+	int* tmp = prev_population_traits;
+	prev_population_traits = population_traits;
+	population_traits = tmp;
 
+	//SPDLOG_DEBUG(log, "postswap - prev_population_traits: {:p}", (void*)prev_population_traits);
+	//SPDLOG_DEBUG(log, "postswap - population_traits: {:p}", (void*)population_traits);
+
+	// Clear the population_traits to zero so we can fill it by transmission from prev_population_traits
+	int size_pop_array = numloci * popsize;
+	memset(population_traits, 0, (size_pop_array * sizeof(int))); 
+}
 
 
 // void Population::test_random() {

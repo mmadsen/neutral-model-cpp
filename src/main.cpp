@@ -20,7 +20,7 @@ void print_trait_counts(TraitFrequencies* tf,std::shared_ptr<spdlog::logger>& lo
 		std::stringstream s;
 		s << "locus " << locus << ": ";
 		for(int trait = 0; trait < tf->max_num_traits; trait++) {
-			s << locus_counts[locus * tf->max_num_traits + trait] << " ";
+			s << setw(4) << locus_counts[locus * tf->max_num_traits + trait] << " ";
 		}
 		SPDLOG_DEBUG(log,"{}",s.str());
 	}
@@ -92,12 +92,13 @@ int main(int argc, char** argv) {
 	pop->dbg_log_population();
 
 
-	TraitFrequencies* tf = pop->tabulate_trait_freq();
+
+	TraitFrequencies* tf = pop->tabulate_trait_counts();
 	print_trait_counts(tf,clog);
 	delete tf;
 
 
-
+	pop->step();
 
 
 
