@@ -7,6 +7,7 @@
 #include <spdlog/logger.h>
 
 #include "population.h"
+#include "defines.h"
 
 /**
 * Population destructor.  Normally not reached if we run a single population and then exit from main(),
@@ -16,17 +17,20 @@
 Population::~Population() {
 	SPDLOG_DEBUG(log,"deallocating block prev_population_traits {:p}", (void*)prev_population_traits); 
 	SPDLOG_DEBUG(log,"deallocating block population_traits {:p}", (void*)population_traits); 
-#if defined(__INTEL_COMPILER)
-	_mm_free(prev_population_traits);
-	_mm_free(population_traits);
-#else
-	free(prev_population_traits);
-	free(population_traits);
-#endif
+	FREE(prev_population_traits);
+	FREE(population_traits);
 }
 
 
 void Population::initialize() {
+
+	// in debug printing, we want fixed columns, with the number of digits appropriate given the 
+	// max number of traits or population size
+	char buffer[32];
+	pop_digits_printing = sprintf(buffer, "%ld", (long)popsize);
+	SPDLOG_DEBUG(log,"Using {} digits to print population individual ID's", pop_digits_printing);
+
+
 	// Construct a uniform integer distribution which will draw individuals from the population
 	// std::random is not necessarily thread safe, so if we use this with OpenMP tasks or loops,
 	// the strategy will be to draw as many as we need from the loop in a #pragma openmp single s
@@ -67,6 +71,9 @@ void Population::initialize() {
 		}
 	}
 
+	// For the first generation only, the previous population is the same as the initial population
+	memcpy(prev_population_traits, population_traits, ((numloci * popsize) * sizeof(int)));
+
 }
 
 
@@ -100,9 +107,46 @@ TraitFrequencies* Population::tabulate_trait_counts() {
 
 
 void Population::step() {
+	SPDLOG_DEBUG(log, "Entering Population::step, implementing simple Wright-Fisher copying");
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
+
+	// the RNG is not safe to use in parallel, and it's a hassle to give every thread an RNG,
+	// so we generate a list of n=popsize individuals which will serve as the targets of copying
+	// this list can then be broken into blocks for threads in an OpenMP team
+	int* indiv_to_copy;
+
+#if defined(__INTEL_COMPILER)
+	indiv_to_copy = (int*) _mm_malloc(popsize * sizeof(int), 64);
+#else
+	indiv_to_copy = (int*) malloc(popsize * sizeof(int));
+#endif
+
+	for(int i = 0; i < popsize; i++) {
+		indiv_to_copy[i] = uniform_pop(this->mt);
+	}
+
+	//DEBUG
+	std::stringstream s;
+	s << "random indiv: ";
+	for(int i = 0; i < popsize; i++) {
+		s << indiv_to_copy[i] << " ";
+	}
+	SPDLOG_DEBUG(log,"{}",s.str());
+
+	//TODO: it really might be better for whole-individual copying algorithms to have rows be individuals
+	// and columns be loci, since otherwise copying an individual is non-unit-stride across multiple rows
+	// of the prev_population_traits directory and insertion is non-unit-stride.
+
+	// Basic Wright-Fisher dynamics without innovation
+	for(int i = 0; i < popsize; i++) {
+
+	}
+
+
+	// clean up 
+	FREE(indiv_to_copy);
 
 }
 
@@ -124,9 +168,6 @@ void Population::swap_population_arrays() {
 }
 
 
-// void Population::test_random() {
-// 	for(int i = 0; i < 20; i++) SPDLOG_DEBUG(log, "testing generator: {}", this->uniform_pop(this->mt));
-// }
 
 std::string Population::dbg_params() {
 	boost::format fmt("[Population %4% | popsize: %1% numloci: %2% inittraits: %3%]");

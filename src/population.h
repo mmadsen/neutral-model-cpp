@@ -1,5 +1,6 @@
 #include <random>
 #include <spdlog/spdlog.h>
+#include "defines.h"
 
 /** \class TraitFrequencies
 *
@@ -31,11 +32,7 @@ public:
 	}
 	~TraitFrequencies() { 
 		SPDLOG_DEBUG(log,"deallocating block trait_counts {:p}", (void*)trait_counts); 
-#if defined(__INTEL_COMPILER)
-		_mm_free(trait_counts);
-#else
-		free(trait_counts);
-#endif
+		FREE(trait_counts);
 	}
 };
 
@@ -54,6 +51,7 @@ class Population {
 	int popsize;
 	int numloci;
 	int inittraits;
+	double innovrate;
 	std::uniform_int_distribution<int> uniform_pop;
 	std::mt19937_64 mt;
 	std::shared_ptr<spdlog::logger> log;
@@ -61,6 +59,8 @@ class Population {
 	int* population_traits;
 	int* prev_population_traits;
 	int* locus_counts;
+	int trait_digits_printing = 0;
+	int pop_digits_printing = 0;
 
 	void swap_population_arrays();
 
@@ -69,8 +69,9 @@ public:
 	Population(int p,
 		int n,
 		int i,
+		int r,
 		std::mt19937_64 m,
-		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), mt(m), log(l)
+		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), innovrate(r), mt(m), log(l)
 	{}
 
 	~Population();

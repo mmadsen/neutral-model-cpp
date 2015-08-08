@@ -5,6 +5,7 @@
 #include <tclap/CmdLine.h>
 
 #include "population.h"
+#include "defines.h"
 
 
 using namespace std;
@@ -85,7 +86,7 @@ int main(int argc, char** argv) {
 
 
 
-	Population* pop = new Population(popsize, numloci, inittraits, mt, clog);
+	Population* pop = new Population(popsize, numloci, inittraits, innovrate, mt, clog);
 	SPDLOG_DEBUG(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
