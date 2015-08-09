@@ -98,9 +98,15 @@ int main(int argc, char** argv) {
 	print_trait_counts(tf,clog);
 	delete tf;
 
+	SPDLOG_DEBUG(clog,"Evolving population for {} steps", simlength);
 
-	pop->step();
+	for(int i = 0; i < simlength; i++)
+		pop->step();
 
+
+	pop->dbg_log_population();
+	tf = pop->tabulate_trait_counts();
+	print_trait_counts(tf,clog);
 
 
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <random>
 #include <algorithm>
 #include <sstream>
@@ -71,8 +72,16 @@ void Population::initialize() {
 		}
 	}
 
+
+	// for(int locus = 0; locus < numloci; locus++) {
+	// 	for(int indiv = 0; indiv < popsize; indiv++) {
+	// 		population_traits[indiv * numloci + locus] = initial_trait_dist(this->mt);
+	// 	}
+	// }
+
+
 	// For the first generation only, the previous population is the same as the initial population
-	memcpy(prev_population_traits, population_traits, ((numloci * popsize) * sizeof(int)));
+	memcpy(prev_population_traits, population_traits, ((popsize * numloci) * sizeof(int)));
 
 }
 
@@ -95,7 +104,7 @@ TraitFrequencies* Population::tabulate_trait_counts() {
 
 	for(int indiv = 0; indiv < popsize; indiv++) {
 		for(int locus = 0; locus < numloci; locus++) {
-			int trait_at_locus = population_traits[locus * popsize + indiv];
+			int trait_at_locus = population_traits[indiv * numloci + locus];
 			++locus_counts[locus * largest_locus_value + trait_at_locus];
 		}
 	}
@@ -107,7 +116,7 @@ TraitFrequencies* Population::tabulate_trait_counts() {
 
 
 void Population::step() {
-	SPDLOG_DEBUG(log, "Entering Population::step, implementing simple Wright-Fisher copying");
+	//SPDLOG_DEBUG(log, "Entering Population::step, implementing simple Wright-Fisher copying");
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
@@ -127,20 +136,22 @@ void Population::step() {
 		indiv_to_copy[i] = uniform_pop(this->mt);
 	}
 
-	//DEBUG
-	std::stringstream s;
-	s << "random indiv: ";
-	for(int i = 0; i < popsize; i++) {
-		s << indiv_to_copy[i] << " ";
-	}
-	SPDLOG_DEBUG(log,"{}",s.str());
+	// //DEBUG
+	// std::stringstream s;
+	// s << "random indiv: ";
+	// for(int i = 0; i < popsize; i++) {
+	// 	s << indiv_to_copy[i] << " ";
+	// }
+	// SPDLOG_DEBUG(log,"{}",s.str());
 
-	//TODO: it really might be better for whole-individual copying algorithms to have rows be individuals
-	// and columns be loci, since otherwise copying an individual is non-unit-stride across multiple rows
-	// of the prev_population_traits directory and insertion is non-unit-stride.
 
 	// Basic Wright-Fisher dynamics without innovation
-	for(int i = 0; i < popsize; i++) {
+	for(int indiv = 0; indiv < popsize; indiv++) {
+		int tocopy = indiv_to_copy[indiv];
+
+		for(int locus = 0; locus < numloci; locus++) {
+			population_traits[indiv * numloci + locus] = prev_population_traits[tocopy * numloci + locus];
+		}
 
 	}
 
@@ -176,14 +187,14 @@ std::string Population::dbg_params() {
 }
 
 void Population::dbg_log_population() {
-	SPDLOG_DEBUG(log, "population state: (rows are loci, columns are indivuals)");
+	SPDLOG_DEBUG(log, "population state: (rows are individuals, columns are loci)");
 
-	//print with loci as rows, columns as indiv
-	for(int locus = 0; locus < numloci; locus++) {
+	//print with indiv as rows, columns as loci
+	for(int indiv = 0; indiv < popsize; indiv++) {
 		std::stringstream s;
-		s << "locus " << locus << ": ";
-		for(int indiv = 0; indiv < popsize; indiv++) {
-			s << population_traits[locus * popsize + indiv] << " ";
+		s << "indiv: " <<  std::setw(pop_digits_printing) << indiv << ": ";
+		for(int locus = 0; locus < numloci; locus++) {
+			s << population_traits[indiv * numloci + locus] << " ";
 		}
 		SPDLOG_DEBUG(log,"{}",s.str());
 	}
