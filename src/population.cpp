@@ -6,6 +6,7 @@
 #include <boost/format.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
+#include <omp.h>
 
 #include "population.h"
 #include "defines.h"
@@ -25,11 +26,13 @@ Population::~Population() {
 
 void Population::initialize() {
 
+
+
 	// in debug printing, we want fixed columns, with the number of digits appropriate given the 
 	// max number of traits or population size
 	char buffer[32];
 	pop_digits_printing = sprintf(buffer, "%ld", (long)popsize);
-	SPDLOG_DEBUG(log,"Using {} digits to print population individual ID's", pop_digits_printing);
+	//SPDLOG_DEBUG(log,"Using {} digits to print population individual ID's", pop_digits_printing);
 
 
 	// Construct a uniform integer distribution which will draw individuals from the population
@@ -146,7 +149,11 @@ void Population::step() {
 
 
 	// Basic Wright-Fisher dynamics without innovation
-	for(int indiv = 0; indiv < popsize; indiv++) {
+#pragma omp parallel 
+{
+	int indiv;
+	#pragma omp for private(indiv)
+	for(indiv = 0; indiv < popsize; indiv++) {
 		int tocopy = indiv_to_copy[indiv];
 
 		for(int locus = 0; locus < numloci; locus++) {
@@ -154,6 +161,7 @@ void Population::step() {
 		}
 
 	}
+}
 
 
 	// clean up 

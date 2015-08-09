@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
 	std::random_device rd;
 	std::mt19937_64 mt(rd());
 	std::uniform_real_distribution<double> uniform(0.0, 1.0);
+	TraitFrequencies* tf;
 
 	auto clog = spdlog::stdout_logger_mt("console");
 
@@ -90,21 +91,15 @@ int main(int argc, char** argv) {
 	SPDLOG_DEBUG(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
-	pop->dbg_log_population();
 
-
-
-	TraitFrequencies* tf = pop->tabulate_trait_counts();
+	tf = pop->tabulate_trait_counts();
 	print_trait_counts(tf,clog);
-	delete tf;
 
 	SPDLOG_DEBUG(clog,"Evolving population for {} steps", simlength);
 
 	for(int i = 0; i < simlength; i++)
 		pop->step();
 
-
-	pop->dbg_log_population();
 	tf = pop->tabulate_trait_counts();
 	print_trait_counts(tf,clog);
 
