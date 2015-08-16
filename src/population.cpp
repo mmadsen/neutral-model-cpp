@@ -3,6 +3,7 @@
 #include <random>
 #include <algorithm>
 #include <sstream>
+#include <math.h>
 #include <boost/format.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
@@ -25,7 +26,17 @@ Population::~Population() {
 
 
 void Population::initialize() {
+	// Initialize needed random number generators
+	std::random_device rd_mt;
+	std::random_device rd_pois;
+	std::random_device rd_locus;
+	std::mt19937_64 t_mt(rd_mt());
+	std::mt19937_64 t_mt_pois(rd_pois());
+	std::mt19937_64 t_mt_locus(rd_locus());
 
+	this->mt = t_mt;
+	this->mt_pois = t_mt_pois;
+	this->mt_locus = t_mt_locus;
 
 
 	// in debug printing, we want fixed columns, with the number of digits appropriate given the 
@@ -41,6 +52,16 @@ void Population::initialize() {
 	// section, and then block them to the worker team to use.  
 	std::uniform_int_distribution<int> u(0, this->popsize - 1);
 	this->uniform_pop = u;
+
+	// Construct a uniform distribution for choosing a random locus
+	std::uniform_int_distribution<int> l(0, this->numloci - 1);
+	this->uniform_locus = l;
+
+	// Construct a Poisson distribution for innovation rates, with mean popsize * innovrate
+	double mutation_rate = static_cast<double>(this->popsize) * this->innovation_rate; 
+	SPDLOG_DEBUG(log,"Constructing Poisson for innovation with mean {:0.4f}", mutation_rate);
+	std::poisson_distribution<int> p(mutation_rate);
+	this->poisson_dist = p;
 
 	// next_trait stores the next new mutation/innovation for each locus/dimension, and each slot
 	// is incremented when a new trait is handed out.  Since there are "inittraits" in the initial 
@@ -118,7 +139,7 @@ TraitFrequencies* Population::tabulate_trait_counts() {
 }
 
 
-void Population::step() {
+void Population::step_basicwf() {
 	//SPDLOG_DEBUG(log, "Entering Population::step, implementing simple Wright-Fisher copying");
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
@@ -170,6 +191,75 @@ void Population::step() {
 }
 
 
+void Population::step_wfia() {
+	//SPDLOG_DEBUG(log, "Entering Population::step_wfia, implementing infinite-alleles Wright-Fisher copying");
+	// Prepare by copying current state to previous state, before doing transmission 
+	// algorithm
+	swap_population_arrays();
+
+	// the RNG is not safe to use in parallel, and it's a hassle to give every thread an RNG,
+	// so we generate a list of n=popsize individuals which will serve as the targets of copying
+	// this list can then be broken into blocks for threads in an OpenMP team
+	int* indiv_to_copy;
+
+#if defined(__INTEL_COMPILER)
+	indiv_to_copy = (int*) _mm_malloc(popsize * sizeof(int), 64);
+#else
+	indiv_to_copy = (int*) malloc(popsize * sizeof(int));
+#endif
+
+	for(int i = 0; i < popsize; i++) {
+		indiv_to_copy[i] = uniform_pop(this->mt);
+	}
+
+	// //DEBUG
+	// std::stringstream s;
+	// s << "random indiv: ";
+	// for(int i = 0; i < popsize; i++) {
+	// 	s << indiv_to_copy[i] << " ";
+	// }
+	// SPDLOG_DEBUG(log,"{}",s.str());
+
+
+	// Wright-Fisher dynamics - in order to optimize performance, first we do all the copying so that
+	// most of the copies will be vectorized and broken into work units.  Then, we come back for a small
+	// number of individuals and give them mutated traits.  
+
+#pragma omp parallel 
+{
+	int indiv;
+	#pragma omp for private(indiv)
+	for(indiv = 0; indiv < popsize; indiv++) {
+		int tocopy = indiv_to_copy[indiv];
+
+		for(int locus = 0; locus < numloci; locus++) {
+			population_traits[indiv * numloci + locus] = prev_population_traits[tocopy * numloci + locus];
+		}
+
+	}
+}
+
+	// Now, we create innovations given the innovation rate, randomly throughout the population
+	int num_mutations = poisson_dist(this->mt_pois);
+	SPDLOG_TRACE(log,"WFIA: num mutations this step: {}", num_mutations);
+
+	for(int j = 0; j < num_mutations; j++) {
+		int indiv_to_mutate = uniform_pop(this->mt);
+		int locus_to_mutate = uniform_locus(this->mt_locus);
+		int new_trait = next_trait[locus_to_mutate];
+		++next_trait[locus_to_mutate];
+		population_traits[indiv_to_mutate * numloci + locus_to_mutate] = new_trait;
+	}
+
+
+	// clean up 
+	FREE(indiv_to_copy);
+
+}
+
+
+
+
 void Population::swap_population_arrays() {
 	// Start by swapping the population trait arrays, so that we capture the previous state for use
 	//SPDLOG_DEBUG(log, "preswap - prev_population_traits: {:p}", (void*)prev_population_traits);
@@ -189,8 +279,8 @@ void Population::swap_population_arrays() {
 
 
 std::string Population::dbg_params() {
-	boost::format fmt("[Population %4% | popsize: %1% numloci: %2% inittraits: %3%]");
-	fmt % this->popsize % this->numloci % this->inittraits % this;
+	boost::format fmt("[Population %4% | popsize: %1% numloci: %2% inittraits: %3%  innovation_rate: %5%]");
+	fmt % this->popsize % this->numloci % this->inittraits % this % this->innovation_rate;
 	return fmt.str();
 }
 

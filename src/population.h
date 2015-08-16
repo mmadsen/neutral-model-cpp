@@ -48,12 +48,17 @@ public:
 */
 
 class Population {
+private:
 	int popsize;
 	int numloci;
 	int inittraits;
-	double innovrate;
+	double innovation_rate;
 	std::uniform_int_distribution<int> uniform_pop;
+	std::uniform_int_distribution<int> uniform_locus;
+	std::poisson_distribution<int> poisson_dist;
 	std::mt19937_64 mt;
+	std::mt19937_64 mt_pois;
+	std::mt19937_64 mt_locus;
 	std::shared_ptr<spdlog::logger> log;
 	std::vector<int> next_trait;
 	int* population_traits;
@@ -69,9 +74,8 @@ public:
 	Population(int p,
 		int n,
 		int i,
-		int r,
-		std::mt19937_64 m,
-		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), innovrate(r), mt(m), log(l)
+		double r,
+		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), innovation_rate(r), log(l)
 	{}
 
 	~Population();
@@ -94,11 +98,19 @@ public:
 
 	/**
 	* Advances the simulation by one time step, implementing cultural transmission within the population.  
-	* Implements a cultural transmission algorithm within the population.  First, the method copies the state 
-	* of the population for reference as the "previous" population traits.  Then, transmission and innovation 
-	* occurs.  
+	* Implements a cultural transmission algorithm within the population.  The basic
+	* WF model has no innovation.  
 	*/
-	void step();
+	void step_basicwf();
+
+	/**
+	* Advances the simultion by one time step, implementing cultural transmission in the population
+	* along with innovation, using the infinite-alleles model of Kimura to simulate trait dimensions 
+	* where there are no constraints on new innovations and every innovation is a new variant which has not
+	* previously existed.  
+	*
+	*/
+	void step_wfia();
 
 
 

@@ -27,12 +27,12 @@ void print_trait_counts(TraitFrequencies* tf,std::shared_ptr<spdlog::logger>& lo
 	}
 }
 
-
+enum ruletype { BASICWF, WFIA };
 
 int main(int argc, char** argv) {
 	std::string VERSION = "0.0.1";
 	int popsize;
-	double innovrate;
+	double innovrate = 10000.0;
 	int numloci;
 	int simlength;
 	int inittraits;
@@ -42,13 +42,20 @@ int main(int argc, char** argv) {
 	std::mt19937_64 mt(rd());
 	std::uniform_real_distribution<double> uniform(0.0, 1.0);
 	TraitFrequencies* tf;
+	ruletype rt;
 
 	auto clog = spdlog::stdout_logger_mt("console");
+	spd::set_level(spd::level::debug); // temporarily
 
 	clog->info() << "Neutral Cultural Transmission in C++ Framework Version: " <<  VERSION;
 
 
 	try {
+		vector<std::string> allowed_types;
+		allowed_types.push_back("basicwf");
+		allowed_types.push_back("wfia");
+		TCLAP::ValuesConstraint<std::string> allowedVals( allowed_types );
+
 		TCLAP::CmdLine cmd("Neutral Cultural Transmission in C++ Framework", ' ', VERSION);
 
 		TCLAP::ValueArg<int> p("p","popsize","Population size",true,100,"integer");
@@ -56,7 +63,8 @@ int main(int argc, char** argv) {
 		TCLAP::ValueArg<double> ir("i", "innovrate","Innovation rate per time step per individual (e.g., 0.1 equals 10 percent change of an innovation per time step",true,0.001,"double");
 		TCLAP::ValueArg<int> len("s", "simlength","Length of the simulation in generations of popsize individuals",true,1000,"integer");
 		TCLAP::ValueArg<int> it("t","inittraits","Number of initial traits present at each dimension/locus",true,4,"integer");
-		TCLAP::ValueArg<int> d("d", "debug", "Set debugging level, with 0 or absence indicating debug output is off",false,0,"integer");
+		TCLAP::ValueArg<int> d("d", "debug", "Set debugging level, with 0 or absence indicating debug output is off, 1 indicating debug, >1 indicating TRACE",false,0,"integer");
+		TCLAP::ValueArg<std::string> t("r","ruletype", "Copying rule to use",true,"basicwf",&allowedVals);
 		TCLAP::ValueArg<std::string> f("f","logfile","Path to log file and filename (e.g., /tmp/test.log",false,"","string");
 
 
@@ -67,6 +75,7 @@ int main(int argc, char** argv) {
 		cmd.add(it);
 		cmd.add(d);
 		cmd.add(f);
+		cmd.add(t);
 		cmd.parse( argc, argv );
 
 		popsize = p.getValue();
@@ -76,19 +85,33 @@ int main(int argc, char** argv) {
 		simlength = len.getValue();
 		debug = d.getValue();
 		logfile = f.getValue();
+		std::string rule = t.getValue();
+		if(rule == "basicwf") {
+			clog->debug("Using basicwf ruletype");
+			rt = BASICWF;
+		}
+		else if( rule == "wfia") {
+			rt = WFIA;
+			clog->debug("Using wfia ruletype");
+		}
+		else {
+			std::cerr << "ERROR: ruletype " << rt << std::endl; 
+			return 1;
+		}
 
 	} catch (TCLAP::ArgException &e)  // catch any exceptions
-	{ std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; return 1; }
+	{ std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl; return 1; }
 
+
+	clog->info("command line processing complete");
 
 	if(debug < 1) { spd::set_level(spd::level::info); }
-	else { spd::set_level(spd::level::debug); }
+	else if(debug == 1) { spd::set_level(spd::level::debug); }
+	else { spd::set_level(spd::level::trace); }
 
 
-
-
-	Population* pop = new Population(popsize, numloci, inittraits, innovrate, mt, clog);
-	SPDLOG_DEBUG(clog, "Constructed population: {}", pop->dbg_params());
+	Population* pop = new Population(popsize, numloci, inittraits, innovrate, clog);
+	SPDLOG_TRACE(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
 
@@ -97,11 +120,20 @@ int main(int argc, char** argv) {
 
 	SPDLOG_DEBUG(clog,"Evolving population for {} steps", simlength);
 
-	for(int i = 0; i < simlength; i++)
-		pop->step();
+	switch(rt) {
+		case BASICWF :
+			for(int i = 0; i < simlength; i++)
+				pop->step_basicwf();
+			break;
+		case WFIA :
+			for(int i = 0; i < simlength; i++) 
+				pop->step_wfia();
+			break;
+	}
+
 
 	tf = pop->tabulate_trait_counts();
-	print_trait_counts(tf,clog);
+	if(debug > 1) print_trait_counts(tf,clog);
 
 
 
