@@ -15,17 +15,37 @@ namespace spd = spdlog;
 #define LOGD clog->debug()
 
 void print_trait_counts(TraitFrequencies* tf,std::shared_ptr<spdlog::logger>& log) {
-	// print with loci as rows, traits as columns
-	int* locus_counts = tf->trait_counts;
-	for(int locus = 0; locus < tf->numloci; locus++) {
-		std::stringstream s;
-		s << "locus " << locus << ": ";
-		for(int trait = 0; trait < tf->max_num_traits; trait++) {
-			s << setw(4) << locus_counts[locus * tf->max_num_traits + trait] << " ";
+	// skip if logging level isn't high enough
+	if(log->level() == spd::level::trace) {
+
+		// print with loci as rows, traits as columns
+		int* locus_counts = tf->trait_counts;
+		for(int locus = 0; locus < tf->numloci; locus++) {
+			std::stringstream s;
+			s << "locus " << locus << ": ";
+			for(int trait = 0; trait < tf->max_num_traits; trait++) {
+				s << setw(4) << locus_counts[locus * tf->max_num_traits + trait] << " ";
+			}
+			SPDLOG_TRACE(log,"{}",s.str());
 		}
-		SPDLOG_DEBUG(log,"{}",s.str());
 	}
 }
+
+
+void print_trait_statistics(TraitStatistics* ts, std::shared_ptr<spdlog::logger>& log) {
+	// skip if logging level isn't high enough
+	if(log->level() == spd::level::trace || log->level() == spd::level::debug) {
+	
+
+		int* locus_richness = ts->trait_richness_by_locus;
+		for(int locus = 0; locus < ts->numloci; locus++) {
+			std::stringstream s;
+			s << "richness @ locus: " << locus << ": " << locus_richness[locus];
+			SPDLOG_DEBUG(log,"{}",s.str());
+		}
+	}
+}
+
 
 enum ruletype { BASICWF, WFIA };
 
@@ -42,10 +62,11 @@ int main(int argc, char** argv) {
 	std::mt19937_64 mt(rd());
 	std::uniform_real_distribution<double> uniform(0.0, 1.0);
 	TraitFrequencies* tf;
+	TraitStatistics* ts;
 	ruletype rt;
+	spdlog::level::level_enum debug_level;
 
 	auto clog = spdlog::stdout_logger_mt("console");
-	spd::set_level(spd::level::debug); // temporarily
 
 	clog->info() << "Neutral Cultural Transmission in C++ Framework Version: " <<  VERSION;
 
@@ -102,20 +123,19 @@ int main(int argc, char** argv) {
 	} catch (TCLAP::ArgException &e)  // catch any exceptions
 	{ std::cerr << "ERROR: " << e.error() << " for arg " << e.argId() << std::endl; return 1; }
 
+	if(debug == 0) { debug_level = spd::level::info; }
+	else if(debug == 1) { debug_level = spd::level::debug; }
+	else { debug_level = spd::level::trace; }
 
-	clog->info("command line processing complete");
-
-	if(debug < 1) { spd::set_level(spd::level::info); }
-	else if(debug == 1) { spd::set_level(spd::level::debug); }
-	else { spd::set_level(spd::level::trace); }
-
+	spd::set_level(debug_level);
 
 	Population* pop = new Population(popsize, numloci, inittraits, innovrate, clog);
 	SPDLOG_TRACE(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
 
-	tf = pop->tabulate_trait_counts();
+	pop->tabulate_trait_counts();
+	tf = pop->get_current_trait_counts();
 	print_trait_counts(tf,clog);
 
 	SPDLOG_DEBUG(clog,"Evolving population for {} steps", simlength);
@@ -132,8 +152,14 @@ int main(int argc, char** argv) {
 	}
 
 
-	tf = pop->tabulate_trait_counts();
-	if(debug > 1) print_trait_counts(tf,clog);
+	pop->tabulate_trait_counts();
+	ts = pop->calculate_trait_statistics();
+
+	print_trait_statistics(ts,clog);
+
+	tf = pop->get_current_trait_counts();
+	print_trait_counts(tf,clog);
+
 
 
 

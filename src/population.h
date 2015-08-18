@@ -27,14 +27,40 @@ public:
 		trait_counts = (int*) malloc(size_count_array * sizeof(int));
 #endif
 
-		SPDLOG_DEBUG(log, "initializing count array {:p} as {}x{} block with size {}", (void*)trait_counts, numloci, max_num_traits,size_count_array);
+		//SPDLOG_TRACE(log, "initializing count array {:p} as {}x{} block with size {}", (void*)trait_counts, numloci, max_num_traits,size_count_array);
 		memset(trait_counts, 0, (size_count_array * sizeof(int)));
 	}
 	~TraitFrequencies() { 
-		SPDLOG_DEBUG(log,"deallocating block trait_counts {:p}", (void*)trait_counts); 
+		//SPDLOG_TRACE(log,"deallocating block trait_counts {:p}", (void*)trait_counts); 
 		FREE(trait_counts);
 	}
 };
+
+
+
+/** \class TraitStatistics
+*
+* TraitStatistics bundle derived statistics from raw trait counts. 
+*/
+
+class TraitStatistics {
+public:
+	int* trait_richness_by_locus;
+	int numloci;
+
+	TraitStatistics(int numloci) : numloci(numloci) {
+#if defined(__INTEL_COMPILER)
+		trait_richness_by_locus = (int*) _mm_malloc(numloci * sizeof(int), 64);
+#else
+		trait_richness_by_locus = (int*) malloc(numloci * sizeof(int));
+#endif
+	}
+
+	~TraitStatistics() {
+		FREE(trait_richness_by_locus);
+	}
+};
+
 
 
 
@@ -66,6 +92,7 @@ private:
 	int* locus_counts;
 	int trait_digits_printing = 0;
 	int pop_digits_printing = 0;
+	TraitFrequencies* current_trait_counts;
 
 	void swap_population_arrays();
 
@@ -89,12 +116,25 @@ public:
 
 	/**
 	* Tabulates frequencies of traits in the current population of individuals, separately for each locus/dimension.
-	* Counts the occurrence of traits in the current population of individuals, for each locus/dimension, storing
-	* the results in a rectangular array of integers, with loci as rows and columns for each trait.  The return value
+	* Stores the trait counts as a TraitFrequencies object for later use.
+	*/
+	void tabulate_trait_counts();
+
+
+	/**
+	* Return the current trait counts.  The return value
 	* is a TraitFrequencies object, which simply exposes the array as a public data member along with the dimensions
 	* of the array (along with managing the count array memory for proper cleanup).
+	*
 	*/
-	TraitFrequencies* tabulate_trait_counts();
+	TraitFrequencies* get_current_trait_counts();
+
+	/**
+	* Calculate derived statistics from the current set of trait counts.  
+	*
+	*/
+	TraitStatistics* calculate_trait_statistics();
+
 
 	/**
 	* Advances the simulation by one time step, implementing cultural transmission within the population.  

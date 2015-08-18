@@ -59,7 +59,7 @@ void Population::initialize() {
 
 	// Construct a Poisson distribution for innovation rates, with mean popsize * innovrate
 	double mutation_rate = static_cast<double>(this->popsize) * this->innovation_rate; 
-	SPDLOG_DEBUG(log,"Constructing Poisson for innovation with mean {:0.4f}", mutation_rate);
+	//SPDLOG_DEBUG(log,"Constructing Poisson for innovation with mean {:0.4f}", mutation_rate);
 	std::poisson_distribution<int> p(mutation_rate);
 	this->poisson_dist = p;
 
@@ -111,7 +111,7 @@ void Population::initialize() {
 
 
 
-TraitFrequencies* Population::tabulate_trait_counts() {
+void Population::tabulate_trait_counts() {
 
 	// allocate space for the largest value in any locus
 	// array of counts will be a rectangular array numloci * largest_locus_value
@@ -133,10 +133,33 @@ TraitFrequencies* Population::tabulate_trait_counts() {
 		}
 	}
 
-	return tf;
-
-
+	this->current_trait_counts = tf;
 }
+
+TraitFrequencies* Population::get_current_trait_counts() {
+	return this->current_trait_counts;
+}
+
+
+TraitStatistics* Population::calculate_trait_statistics() {
+	TraitStatistics* ts = new TraitStatistics(this->numloci);
+	TraitFrequencies* tf = this->current_trait_counts;
+
+	int* locus_counts = tf->trait_counts;
+	for(int locus = 0; locus < tf->numloci; locus++) {
+		int richness = 0;
+
+		for(int trait = 0; trait < tf->max_num_traits; trait++) {
+			if(locus_counts[locus * tf->max_num_traits + trait] > 0) 
+				++richness;
+		}
+		ts->trait_richness_by_locus[locus] = richness;
+	}
+
+
+	return ts;
+}
+
 
 
 void Population::step_basicwf() {
