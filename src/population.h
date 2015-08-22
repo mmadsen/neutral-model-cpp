@@ -1,3 +1,5 @@
+#pragma once
+
 #include <random>
 #include <spdlog/spdlog.h>
 #include "defines.h"
@@ -10,6 +12,8 @@
 * as:  trait_counts[locus * max_num_traits + trait]
 *
 */
+
+namespace CTModels {
 
 class TraitFrequencies {
 public:
@@ -83,13 +87,12 @@ private:
 	std::uniform_int_distribution<int> uniform_locus;
 	std::poisson_distribution<int> poisson_dist;
 	std::mt19937_64 mt;
-	std::mt19937_64 mt_pois;
-	std::mt19937_64 mt_locus;
 	std::shared_ptr<spdlog::logger> log;
 	std::vector<int> next_trait;
 	int* population_traits;
 	int* prev_population_traits;
 	int* locus_counts;
+	int* indiv_to_copy;
 	int trait_digits_printing = 0;
 	int pop_digits_printing = 0;
 	TraitFrequencies* current_trait_counts;
@@ -156,4 +159,6 @@ public:
 
 	std::string dbg_params();
 	void dbg_log_population();
+};
+
 };
