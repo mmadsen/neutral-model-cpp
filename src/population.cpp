@@ -10,6 +10,7 @@
 #include <omp.h>
 
 #include "population.h"
+#include "statistics.h"
 #include "defines.h"
 
 namespace CTModels {

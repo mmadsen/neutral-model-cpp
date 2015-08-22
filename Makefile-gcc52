@@ -241,6 +241,9 @@ clean:
 
 distclean: clean
 	$(RM) $(DEPS) TAGS
+	rm -rf docs/*
+	rm -f src/*.optrpt
+	rm -f *.optrpt
 
 docs: FORCE
 	rm -rf docs/*
