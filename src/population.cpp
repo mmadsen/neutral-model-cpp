@@ -14,6 +14,7 @@
 #include "defines.h"
 #include "timer.h"
 #include "globals.h"
+#include "parallel_random.h"
 
 using namespace CTModels;
 
@@ -179,9 +180,11 @@ void Population::step_basicwf() {
 	swap_population_arrays();
 
 
-	for(int i = 0; i < popsize; i++) {
-		indiv_to_copy[i] = uniform_pop(this->mt);
-	}
+	// for(int i = 0; i < popsize; i++) {
+	// 	indiv_to_copy[i] = uniform_pop(this->mt);
+	// }
+
+	generate_uniform_int(0, popsize, popsize, indiv_to_copy);
 
 
 	// Basic Wright-Fisher dynamics without innovation
@@ -208,10 +211,11 @@ void Population::step_wfia() {
 	// algorithm
 	swap_population_arrays();
 
-	for(int i = 0; i < popsize; i++) {
-		indiv_to_copy[i] = uniform_pop(this->mt);
-	}
+	// for(int i = 0; i < popsize; i++) {
+	// 	indiv_to_copy[i] = uniform_pop(this->mt);
+	// }
 
+	generate_uniform_int(0, popsize, popsize, indiv_to_copy);
 
 	// Wright-Fisher dynamics - in order to optimize performance, first we do all the copying so that
 	// most of the copies will be vectorized and broken into work units.  Then, we come back for a small
