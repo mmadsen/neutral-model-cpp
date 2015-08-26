@@ -1,5 +1,7 @@
 #include <iostream>
 #include <random>	
+#include <chrono>
+#include <ratio>
 #include <sstream>
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
@@ -7,7 +9,7 @@
 #include "population.h"
 #include "statistics.h"
 #include "defines.h"
-
+#include "timer.h"
 
 using namespace std;
 using namespace CTModels;
@@ -36,6 +38,7 @@ int main(int argc, char** argv) {
 	TraitStatistics* ts;
 	ruletype rt;
 	spdlog::level::level_enum debug_level;
+	Timer* code_timer = new Timer();
 
 	auto clog = spdlog::stdout_logger_mt("console");
 
@@ -100,6 +103,8 @@ int main(int argc, char** argv) {
 
 	spd::set_level(debug_level);
 
+	code_timer->start("main");
+
 	Population* pop = new Population(popsize, numloci, inittraits, innovrate, clog);
 	SPDLOG_TRACE(clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
@@ -131,12 +136,9 @@ int main(int argc, char** argv) {
 	tf = pop->get_current_trait_counts();
 	print_trait_counts(tf,clog);
 
+	code_timer->end("main");
 
-
-
-
-
-
+	clog->info() << "simulation time in ms: " << code_timer->interval_ms("main");
 
 
     return 0;
