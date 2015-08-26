@@ -10,13 +10,11 @@
 #include "statistics.h"
 #include "defines.h"
 #include "timer.h"
+#include "globals.h"
 
 using namespace std;
 using namespace CTModels;
 namespace spd = spdlog;
-
-
-#define LOGD clog->debug()
 
 
 
@@ -38,11 +36,10 @@ int main(int argc, char** argv) {
 	TraitStatistics* ts;
 	ruletype rt;
 	spdlog::level::level_enum debug_level;
-	Timer* code_timer = new Timer();
 
-	auto clog = spdlog::stdout_logger_mt("console");
 
-	clog->info() << "Neutral Cultural Transmission in C++ Framework Version: " <<  VERSION;
+
+	CTModels::clog->info() << "Neutral Cultural Transmission in C++ Framework Version: " <<  VERSION;
 
 
 	try {
@@ -82,12 +79,12 @@ int main(int argc, char** argv) {
 		logfile = f.getValue();
 		std::string rule = t.getValue();
 		if(rule == "basicwf") {
-			clog->debug("Using basicwf ruletype");
+			CTModels::clog->debug("Using basicwf ruletype");
 			rt = BASICWF;
 		}
 		else if( rule == "wfia") {
 			rt = WFIA;
-			clog->debug("Using wfia ruletype");
+			CTModels::clog->debug("Using wfia ruletype");
 		}
 		else {
 			std::cerr << "ERROR: ruletype " << rt << std::endl; 
@@ -103,18 +100,18 @@ int main(int argc, char** argv) {
 
 	spd::set_level(debug_level);
 
-	code_timer->start("main");
+	timer.start("main");
 
-	Population* pop = new Population(popsize, numloci, inittraits, innovrate, clog);
-	SPDLOG_TRACE(clog, "Constructed population: {}", pop->dbg_params());
+	Population* pop = new Population(popsize, numloci, inittraits, innovrate, CTModels::clog);
+	SPDLOG_TRACE(CTModels::clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
 
 	pop->tabulate_trait_counts();
 	tf = pop->get_current_trait_counts();
-	print_trait_counts(tf,clog);
+	print_trait_counts(tf);
 
-	SPDLOG_DEBUG(clog,"Evolving population for {} steps", simlength);
+	SPDLOG_DEBUG(CTModels::clog,"Evolving population for {} steps", simlength);
 
 	switch(rt) {
 		case BASICWF :
@@ -131,14 +128,15 @@ int main(int argc, char** argv) {
 	pop->tabulate_trait_counts();
 	ts = pop->calculate_trait_statistics();
 
-	print_trait_statistics(ts,clog);
+	print_trait_statistics(ts);
 
 	tf = pop->get_current_trait_counts();
-	print_trait_counts(tf,clog);
+	print_trait_counts(tf);
 
-	code_timer->end("main");
+	timer.end("main");
 
-	clog->info() << "simulation time in ms: " << code_timer->interval_ms("main");
+	print_event_timing();
+
 
 
     return 0;

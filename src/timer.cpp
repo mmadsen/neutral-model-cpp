@@ -1,6 +1,13 @@
 #include <chrono>
 #include <ratio>
+#include <vector>
+#include <string>
+#include <spdlog/spdlog.h>
+#include <spdlog/logger.h>
 #include "timer.h"
+#include "globals.h"
+
+using namespace CTModels;
 
 namespace CTModels {
 
@@ -17,6 +24,14 @@ void Timer::end(std::string label) {
 
 double Timer::interval_ms(std::string label) {
 	return completed_times[label];
+}
+
+std::vector<std::string> Timer::get_timed_events() {
+	std::vector<std::string> labels;
+	for(auto it = completed_times.begin(); it != completed_times.end(); ++it) {
+		labels.push_back(it->first);
+	}
+	return labels;
 }
 
 

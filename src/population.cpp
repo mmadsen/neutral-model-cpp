@@ -12,6 +12,12 @@
 #include "population.h"
 #include "statistics.h"
 #include "defines.h"
+#include "timer.h"
+#include "globals.h"
+
+using namespace CTModels;
+
+extern CTModels::Timer timer;
 
 namespace CTModels {
 
@@ -22,9 +28,9 @@ namespace CTModels {
 * populations. 
 */
 Population::~Population() {
-	SPDLOG_DEBUG(log,"deallocating block prev_population_traits {:p}", (void*)prev_population_traits); 
-	SPDLOG_DEBUG(log,"deallocating block population_traits {:p}", (void*)population_traits); 
-	SPDLOG_DEBUG(log,"deallocating block indiv_to_copy {:p}", (void*)indiv_to_copy);
+	SPDLOG_TRACE(clog,"deallocating block prev_population_traits {:p}", (void*)prev_population_traits); 
+	SPDLOG_TRACE(clog,"deallocating block population_traits {:p}", (void*)population_traits); 
+	SPDLOG_TRACE(clog,"deallocating block indiv_to_copy {:p}", (void*)indiv_to_copy);
 	FREE(prev_population_traits);
 	FREE(population_traits);
 	FREE(indiv_to_copy);
@@ -32,6 +38,7 @@ Population::~Population() {
 
 
 void Population::initialize() {
+	timer.start("population::initialize");
 	// Initialize needed random number generators
 	std::random_device rd_mt;
 	std::mt19937_64 t_mt(rd_mt());
@@ -43,7 +50,7 @@ void Population::initialize() {
 	// max number of traits or population size
 	char buffer[32];
 	pop_digits_printing = sprintf(buffer, "%ld", (long)popsize);
-	//SPDLOG_DEBUG(log,"Using {} digits to print population individual ID's", pop_digits_printing);
+	//SPDLOG_DEBUG(clog,"Using {} digits to print population individual ID's", pop_digits_printing);
 
 
 	// Construct a uniform integer distribution which will draw individuals from the population
@@ -107,13 +114,13 @@ void Population::initialize() {
 
 	// For the first generation only, the previous population is the same as the initial population
 	memcpy(prev_population_traits, population_traits, ((popsize * numloci) * sizeof(int)));
-
+	timer.end("population::initialize");
 }
 
 
 
 void Population::tabulate_trait_counts() {
-
+	timer.start("population::tabulate_trait_counts");
 	// allocate space for the largest value in any locus
 	// array of counts will be a rectangular array numloci * largest_locus_value
 	// technically, the largest_locus_value is 1 greater than any trait value seen at any locus, 
@@ -136,6 +143,7 @@ void Population::tabulate_trait_counts() {
 	}
 
 	this->current_trait_counts = tf;
+	timer.end("population::tabulate_trait_counts");
 }
 
 TraitFrequencies* Population::get_current_trait_counts() {
@@ -144,6 +152,7 @@ TraitFrequencies* Population::get_current_trait_counts() {
 
 
 TraitStatistics* Population::calculate_trait_statistics() {
+	timer.start("population::calculate_trait_statistics");
 	TraitStatistics* ts = new TraitStatistics(this->numloci);
 	TraitFrequencies* tf = this->current_trait_counts;
 
@@ -158,14 +167,13 @@ TraitStatistics* Population::calculate_trait_statistics() {
 		ts->trait_richness_by_locus[locus] = richness;
 	}
 
-
+	timer.end("population::calculate_trait_statistics");
 	return ts;
 }
 
 
 
 void Population::step_basicwf() {
-	//SPDLOG_DEBUG(log, "Entering Population::step, implementing simple Wright-Fisher copying");
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
@@ -196,7 +204,6 @@ void Population::step_basicwf() {
 
 
 void Population::step_wfia() {
-	//SPDLOG_DEBUG(log, "Entering Population::step_wfia, implementing infinite-alleles Wright-Fisher copying");
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
@@ -204,14 +211,6 @@ void Population::step_wfia() {
 	for(int i = 0; i < popsize; i++) {
 		indiv_to_copy[i] = uniform_pop(this->mt);
 	}
-
-	// //DEBUG
-	// std::stringstream s;
-	// s << "random indiv: ";
-	// for(int i = 0; i < popsize; i++) {
-	// 	s << indiv_to_copy[i] << " ";
-	// }
-	// SPDLOG_DEBUG(log,"{}",s.str());
 
 
 	// Wright-Fisher dynamics - in order to optimize performance, first we do all the copying so that
@@ -234,7 +233,7 @@ void Population::step_wfia() {
 
 	// Now, we create innovations given the innovation rate, randomly throughout the population
 	int num_mutations = poisson_dist(this->mt);
-	SPDLOG_TRACE(log,"WFIA: num mutations this step: {}", num_mutations);
+	//SPDLOG_TRACE(clog,"WFIA: num mutations this step: {}", num_mutations);
 
 	for(int j = 0; j < num_mutations; j++) {
 		int indiv_to_mutate = uniform_pop(this->mt);
@@ -253,14 +252,10 @@ void Population::step_wfia() {
 
 void Population::swap_population_arrays() {
 	// Start by swapping the population trait arrays, so that we capture the previous state for use
-	//SPDLOG_DEBUG(log, "preswap - prev_population_traits: {:p}", (void*)prev_population_traits);
-	//SPDLOG_DEBUG(log, "preswap - population_traits: {:p}", (void*)population_traits);
+
 	int* tmp = prev_population_traits;
 	prev_population_traits = population_traits;
 	population_traits = tmp;
-
-	//SPDLOG_DEBUG(log, "postswap - prev_population_traits: {:p}", (void*)prev_population_traits);
-	//SPDLOG_DEBUG(log, "postswap - population_traits: {:p}", (void*)population_traits);
 
 	// Clear the population_traits to zero so we can fill it by transmission from prev_population_traits
 	int size_pop_array = numloci * popsize;
@@ -276,7 +271,7 @@ std::string Population::dbg_params() {
 }
 
 void Population::dbg_log_population() {
-	SPDLOG_DEBUG(log, "population state: (rows are individuals, columns are loci)");
+	SPDLOG_TRACE(clog, "population state: (rows are individuals, columns are loci)");
 
 	//print with indiv as rows, columns as loci
 	for(int indiv = 0; indiv < popsize; indiv++) {
@@ -285,7 +280,7 @@ void Population::dbg_log_population() {
 		for(int locus = 0; locus < numloci; locus++) {
 			s << population_traits[indiv * numloci + locus] << " ";
 		}
-		SPDLOG_DEBUG(log,"{}",s.str());
+		SPDLOG_TRACE(clog,"{}",s.str());
 	}
 }
 

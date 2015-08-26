@@ -2,6 +2,8 @@
 #include <spdlog/spdlog.h>
 #include "defines.h"
 
+
+
 namespace CTModels {
 
 /** \class TraitFrequencies
@@ -65,9 +67,9 @@ public:
 
 
 /* Defined in statistics.cpp */
-void print_trait_counts(TraitFrequencies* tf,std::shared_ptr<spdlog::logger>& log);
-void print_trait_statistics(TraitStatistics* ts, std::shared_ptr<spdlog::logger>& log);
-
+void print_trait_counts(TraitFrequencies* tf);
+void print_trait_statistics(TraitStatistics* ts);
+void print_event_timing();
 
 
 

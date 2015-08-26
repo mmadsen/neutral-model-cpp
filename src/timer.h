@@ -4,6 +4,7 @@
 #include <ratio>
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 
 namespace CTModels {
@@ -42,6 +43,11 @@ public:
 	*/
 	double interval_ms(std::string label);
 
+	/**
+	* Returns a vector of string labels for events with timing information.
+	*
+	*/
+	std::vector<std::string> get_timed_events();
 
 };
 
