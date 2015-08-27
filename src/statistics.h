@@ -1,6 +1,7 @@
 #pragma once
 #include <spdlog/spdlog.h>
 #include "defines.h"
+#include "globals.h"
 
 
 
@@ -20,19 +21,13 @@ public:
 	int* trait_counts; 
 	int numloci;
 	int max_num_traits;
-	std::shared_ptr<spdlog::logger> log;
 
-	TraitFrequencies(int n, int m, std::shared_ptr<spdlog::logger>& l) : numloci(n), max_num_traits(m), log(l) {
-		int size_count_array = numloci * max_num_traits;
+	TraitFrequencies(int n, int m) : numloci(n), max_num_traits(m) {
+		int count_bufsize = (numloci * max_num_traits) * sizeof(int);
+		trait_counts = (int*) ALIGNED_MALLOC(count_bufsize);
 
-#if defined(__INTEL_COMPILER)
-		trait_counts = (int*) _mm_malloc(size_count_array * sizeof(int),64);
-#else
-		trait_counts = (int*) malloc(size_count_array * sizeof(int));
-#endif
-
-		//SPDLOG_TRACE(log, "initializing count array {:p} as {}x{} block with size {}", (void*)trait_counts, numloci, max_num_traits,size_count_array);
-		memset(trait_counts, 0, (size_count_array * sizeof(int)));
+		//SPDLOG_DEBUG(clog, "TF initializing count array {:p} as {}x{} block with size {}", (void*)trait_counts, numloci, max_num_traits,count_bufsize);
+		memset(trait_counts, 0, count_bufsize);
 	}
 	~TraitFrequencies() { 
 		//SPDLOG_TRACE(log,"deallocating block trait_counts {:p}", (void*)trait_counts); 
@@ -53,11 +48,10 @@ public:
 	int numloci;
 
 	TraitStatistics(int numloci) : numloci(numloci) {
-#if defined(__INTEL_COMPILER)
-		trait_richness_by_locus = (int*) _mm_malloc(numloci * sizeof(int), 64);
-#else
-		trait_richness_by_locus = (int*) malloc(numloci * sizeof(int));
-#endif
+		int bufsize = numloci * sizeof(int);
+		trait_richness_by_locus = (int*) ALIGNED_MALLOC(bufsize); 
+		//SPDLOG_DEBUG(clog, "TF initializing richness array {:p} as {} block with size {}", (void*)trait_richness_by_locus, numloci, bufsize);
+
 	}
 
 	~TraitStatistics() {

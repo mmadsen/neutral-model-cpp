@@ -4,6 +4,8 @@
 namespace CTModels {
 
 
+
+
 void generate_uniform_int(int begin, int end, int num_variates, int* variates) {
 #pragma omp parallel shared(variates)
 {

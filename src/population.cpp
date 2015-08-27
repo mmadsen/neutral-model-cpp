@@ -88,13 +88,12 @@ void Population::initialize() {
 	// which since I want to parallelize over individuals, I will interpret as:
 	//
 	// 		{individual X trait at locus Y} = population_traits[Y * popsize + X]
-#if defined(__INTEL_COMPILER)
-	population_traits = (int*) _mm_malloc((numloci * popsize) * sizeof(int), 64);
-	prev_population_traits = (int*) _mm_malloc((numloci * popsize) * sizeof(int),64);
-#else
-	population_traits = (int*) malloc((numloci * popsize) * sizeof(int));
-	prev_population_traits = (int*) malloc((numloci * popsize) * sizeof(int));
-#endif
+
+	auto trait_bufsize = (numloci * popsize) * sizeof(int);
+	population_traits = (int*) ALIGNED_MALLOC(trait_bufsize);
+	prev_population_traits = (int*) ALIGNED_MALLOC(trait_bufsize);
+	//SPDLOG_DEBUG(clog, "Pop initializing pop traits array {:p} as {}x{} block with size {}", (void*)population_traits, popsize, numloci, trait_bufsize);
+	//SPDLOG_DEBUG(clog, "Pop initializing prev pop array {:p} as {}x{} block with size {}", (void*)prev_population_traits, popsize, numloci, trait_bufsize);
 
 	std::uniform_int_distribution<int> initial_trait_dist(0, inittraits - 1);
 
@@ -107,14 +106,14 @@ void Population::initialize() {
 
 	// Initialize a buffer to hold random numbers indicating which individuals are copied
 	// in each time step
-#if defined(__INTEL_COMPILER)
-	indiv_to_copy = (int*) _mm_malloc(popsize * sizeof(int), 64);
-#else
-	indiv_to_copy = (int*) malloc(popsize * sizeof(int));
-#endif
+	auto indiv_bufsize = popsize * sizeof(int);
+	indiv_to_copy = (int*) ALIGNED_MALLOC(indiv_bufsize);
+	//SPDLOG_DEBUG(clog, "Pop initializing indiv_to_copy array {:p} as {} block with size {}", (void*)indiv_to_copy, popsize, indiv_bufsize);
+
+
 
 	// For the first generation only, the previous population is the same as the initial population
-	memcpy(prev_population_traits, population_traits, ((popsize * numloci) * sizeof(int)));
+	memcpy(prev_population_traits, population_traits, trait_bufsize);
 	timer.end("population::initialize");
 }
 
@@ -132,7 +131,7 @@ void Population::tabulate_trait_counts() {
 	int largest_locus_value = *result - 1;
 
 
-	TraitFrequencies* tf = new TraitFrequencies(numloci,largest_locus_value,log);
+	TraitFrequencies* tf = new TraitFrequencies(numloci,largest_locus_value);
 	int* locus_counts = tf->trait_counts;
 
 #pragma vector always

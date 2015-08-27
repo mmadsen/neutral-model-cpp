@@ -57,16 +57,16 @@
 ##==========================================================================
 
 # The pre-processor and compiler options.
-MY_CFLAGS = -I ./lib -I /usr/local/Cellar/igraph/0.7.1/include -std=c++11 
+MY_CFLAGS = -I ./lib -fopenmp -std=c++11 
 
 # The linker options.
-MY_LIBS   = -L /usr/local/lib -L /usr/local/Cellar/igraph/0.7.1/lib
+MY_LIBS   = -L .
 
 # The pre-processor options used by the cpp (man cpp for more).
-CPPFLAGS  = -Wall
+CPPFLAGS  = 
 
 # The options used in linking as well as in any direct use of ld.
-LDFLAGS   = -lboost_program_options
+LDFLAGS   = 
 
 
 # The directories in which source files reside.
@@ -89,8 +89,8 @@ HDREXTS = .h .H .hh .hpp .HPP .h++ .hxx .hp
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-CFLAGS  = -g -O3
-CXXFLAGS= -g -O3
+CFLAGS  = -g -O3 -Wall
+CXXFLAGS= -g -O3 -Wall
 
 # The C program compiler.
 CC     = /usr/gcc-5.2.0/bin/gcc-5.2.0

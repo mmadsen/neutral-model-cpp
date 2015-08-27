@@ -6,5 +6,9 @@
 	#define FREE(x) free(x)
 #endif
 
-
+#if defined(__INTEL_COMPILER)
+		#define ALIGNED_MALLOC(x) _mm_malloc(x, 64)
+#else
+		#define ALIGNED_MALLOC(x) malloc(x)
+#endif
 
