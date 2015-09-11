@@ -140,12 +140,14 @@ COMPILE.cxx = $(CXX) $(MY_CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c
 LINK.c      = $(CC)  $(MY_CFLAGS) $(CFLAGS)   $(CPPFLAGS) $(LDFLAGS)
 LINK.cxx    = $(CXX) $(MY_CFLAGS) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
-.PHONY: all objs tags ctags clean distclean help show
+.PHONY:  all objs tags ctags clean distclean help show
 
 # Delete the default suffixes
 .SUFFIXES:
 
-all: $(PROGRAM)
+all: $(PROGRAM) 
+
+release: $(PROGRAM) docs
 
 # Rules for creating dependency files (.d).
 #------------------------------------------
@@ -224,11 +226,9 @@ $(PROGRAM):$(OBJS)
 ifeq ($(SRC_CXX),)              # C program
 	$(LINK.c)   $(OBJS) $(MY_LIBS) -o $@
 	@echo Type ./$@ to execute the program.
-	doxygen Doxyfile
 else                            # C++ program
 	$(LINK.cxx) $(OBJS) $(MY_LIBS) -o $@
 	@echo Type ./$@ to execute the program.
-	doxygen Doxyfile
 endif
 
 ifndef NODEP

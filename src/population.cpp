@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
 #include <omp.h>
+#include <memory>
 
 #include "population.h"
 #include "statistics.h"
@@ -78,31 +79,14 @@ void Population::initialize() {
 		next_trait.push_back(this->inittraits + 1);
 	}
 
-	// initialize population_traits.  We could use the new C++11 syntax
-	// int* population_traits = new int[X][Y] but we also want the block aligned
-	// and the access is slow because technically it's returning a pointer from the 
-	// first array access before it does the second.  Access this array in one of 
-	// two ways:
-	//		population_traits[y * width + x] 
-	//
-	// which since I want to parallelize over individuals, I will interpret as:
-	//
-	// 		{individual X trait at locus Y} = population_traits[Y * popsize + X]
-
 	auto trait_bufsize = (numloci * popsize) * sizeof(int);
 	population_traits = (int*) ALIGNED_MALLOC(trait_bufsize);
 	prev_population_traits = (int*) ALIGNED_MALLOC(trait_bufsize);
 	//SPDLOG_DEBUG(clog, "Pop initializing pop traits array {:p} as {}x{} block with size {}", (void*)population_traits, popsize, numloci, trait_bufsize);
 	//SPDLOG_DEBUG(clog, "Pop initializing prev pop array {:p} as {}x{} block with size {}", (void*)prev_population_traits, popsize, numloci, trait_bufsize);
 
-	std::uniform_int_distribution<int> initial_trait_dist(0, inittraits - 1);
-
-	for(int indiv = 0; indiv < popsize; indiv++) {
-		for(int locus = 0; locus < numloci; locus++) {
-			population_traits[locus * popsize + indiv] = initial_trait_dist(this->mt);
-		}
-	}
-
+	int num_variates = popsize * numloci;
+	generate_uniform_int(0, inittraits - 1, num_variates, population_traits);
 
 	// Initialize a buffer to hold random numbers indicating which individuals are copied
 	// in each time step
@@ -119,7 +103,7 @@ void Population::initialize() {
 
 
 
-void Population::tabulate_trait_counts() {
+std::shared_ptr<TraitFrequencies> Population::tabulate_trait_counts() {
 	timer.start("population::tabulate_trait_counts");
 	// allocate space for the largest value in any locus
 	// array of counts will be a rectangular array numloci * largest_locus_value
@@ -130,8 +114,10 @@ void Population::tabulate_trait_counts() {
 	auto result = std::max_element(next_trait.begin(), next_trait.end());
 	int largest_locus_value = *result - 1;
 
-
-	TraitFrequencies* tf = new TraitFrequencies(numloci,largest_locus_value);
+	// declared as a std::unique_ptr, because we want the TF object from the last time tabulate was called
+	// to clean itsetf up once there isn't a reference anymore.
+	std::shared_ptr<TraitFrequencies> tf;
+	tf.reset(new TraitFrequencies(numloci,largest_locus_value));
 	int* locus_counts = tf->trait_counts;
 
 #pragma vector always
@@ -141,35 +127,12 @@ void Population::tabulate_trait_counts() {
 			++locus_counts[locus * largest_locus_value + trait_at_locus];
 		}
 	}
-
-	this->current_trait_counts = tf;
 	timer.end("population::tabulate_trait_counts");
-}
-
-TraitFrequencies* Population::get_current_trait_counts() {
-	return this->current_trait_counts;
+	return tf;
 }
 
 
-TraitStatistics* Population::calculate_trait_statistics() {
-	timer.start("population::calculate_trait_statistics");
-	TraitStatistics* ts = new TraitStatistics(this->numloci);
-	TraitFrequencies* tf = this->current_trait_counts;
 
-	int* locus_counts = tf->trait_counts;
-	for(int locus = 0; locus < tf->numloci; locus++) {
-		int richness = 0;
-
-		for(int trait = 0; trait < tf->max_num_traits; trait++) {
-			if(locus_counts[locus * tf->max_num_traits + trait] > 0) 
-				++richness;
-		}
-		ts->trait_richness_by_locus[locus] = richness;
-	}
-
-	timer.end("population::calculate_trait_statistics");
-	return ts;
-}
 
 
 
@@ -177,11 +140,6 @@ void Population::step_basicwf() {
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
-
-
-	// for(int i = 0; i < popsize; i++) {
-	// 	indiv_to_copy[i] = uniform_pop(this->mt);
-	// }
 
 	generate_uniform_int(0, popsize, popsize, indiv_to_copy);
 
@@ -209,10 +167,6 @@ void Population::step_wfia() {
 	// Prepare by copying current state to previous state, before doing transmission 
 	// algorithm
 	swap_population_arrays();
-
-	// for(int i = 0; i < popsize; i++) {
-	// 	indiv_to_copy[i] = uniform_pop(this->mt);
-	// }
 
 	generate_uniform_int(0, popsize, popsize, indiv_to_copy);
 

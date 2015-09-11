@@ -1,7 +1,6 @@
 #pragma once
 
 #include <random>
-#include <spdlog/spdlog.h>
 #include "defines.h"
 #include "statistics.h"
 
@@ -30,7 +29,6 @@ private:
 	std::uniform_int_distribution<int> uniform_locus;
 	std::poisson_distribution<int> poisson_dist;
 	std::mt19937_64 mt;
-	std::shared_ptr<spdlog::logger> log;
 	std::vector<int> next_trait;
 	int* population_traits;
 	int* prev_population_traits;
@@ -38,7 +36,6 @@ private:
 	int* indiv_to_copy;
 	int trait_digits_printing = 0;
 	int pop_digits_printing = 0;
-	TraitFrequencies* current_trait_counts;
 
 	void swap_population_arrays();
 
@@ -47,8 +44,7 @@ public:
 	Population(int p,
 		int n,
 		int i,
-		double r,
-		std::shared_ptr<spdlog::logger>& l) : popsize(p), numloci(n), inittraits(i), innovation_rate(r), log(l)
+		double r) : popsize(p), numloci(n), inittraits(i), innovation_rate(r)
 	{}
 
 	~Population();
@@ -62,24 +58,10 @@ public:
 
 	/**
 	* Tabulates frequencies of traits in the current population of individuals, separately for each locus/dimension.
-	* Stores the trait counts as a TraitFrequencies object for later use.
+	* Returns the counts in a TraitFrequencies object, wrapped in a smart pointer which reclaims the memory when
+	* the object goes out of scope.  
 	*/
-	void tabulate_trait_counts();
-
-
-	/**
-	* Return the current trait counts.  The return value
-	* is a TraitFrequencies object, which simply exposes the array as a public data member along with the dimensions
-	* of the array (along with managing the count array memory for proper cleanup).
-	*
-	*/
-	TraitFrequencies* get_current_trait_counts();
-
-	/**
-	* Calculate derived statistics from the current set of trait counts.  
-	*
-	*/
-	TraitStatistics* calculate_trait_statistics();
+	std::shared_ptr<TraitFrequencies> tabulate_trait_counts();
 
 
 	/**

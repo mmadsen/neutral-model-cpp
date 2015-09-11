@@ -61,9 +61,10 @@ public:
 
 
 /* Defined in statistics.cpp */
-void print_trait_counts(TraitFrequencies* tf);
-void print_trait_statistics(TraitStatistics* ts);
+void print_trait_counts(std::shared_ptr<TraitFrequencies> tf);
+void print_trait_statistics(std::shared_ptr<TraitStatistics> ts);
 void print_event_timing();
+std::shared_ptr<TraitStatistics> calculate_trait_statistics(std::shared_ptr<TraitFrequencies> tf);
 
 
 

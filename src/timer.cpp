@@ -28,7 +28,7 @@ double Timer::interval_ms(std::string label) {
 
 std::vector<std::string> Timer::get_timed_events() {
 	std::vector<std::string> labels;
-	for(auto it = completed_times.begin(); it != completed_times.end(); ++it) {
+	for(auto it = completed_times.cbegin(); it != completed_times.cend(); ++it) {
 		labels.push_back(it->first);
 	}
 	return labels;

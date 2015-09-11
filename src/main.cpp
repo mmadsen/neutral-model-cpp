@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ratio>
 #include <sstream>
+#include <memory>
+
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
 
@@ -32,8 +34,6 @@ int main(int argc, char** argv) {
 	std::random_device rd;
 	std::mt19937_64 mt(rd());
 	std::uniform_real_distribution<double> uniform(0.0, 1.0);
-	TraitFrequencies* tf;
-	TraitStatistics* ts;
 	ruletype rt;
 	spdlog::level::level_enum debug_level;
 
@@ -102,13 +102,12 @@ int main(int argc, char** argv) {
 
 	timer.start("main");
 
-	Population* pop = new Population(popsize, numloci, inittraits, innovrate, CTModels::clog);
+	Population* pop = new Population(popsize, numloci, inittraits, innovrate);
 	SPDLOG_TRACE(CTModels::clog, "Constructed population: {}", pop->dbg_params());
 	pop->initialize();
 
 
-	pop->tabulate_trait_counts();
-	tf = pop->get_current_trait_counts();
+	auto tf = pop->tabulate_trait_counts();
 	print_trait_counts(tf);
 
 	SPDLOG_DEBUG(CTModels::clog,"Evolving population for {} steps", simlength);
@@ -125,13 +124,11 @@ int main(int argc, char** argv) {
 	}
 
 
-	pop->tabulate_trait_counts();
-	ts = pop->calculate_trait_statistics();
+	auto tf2 = pop->tabulate_trait_counts();
+	auto ts = calculate_trait_statistics(tf2);
 
 	print_trait_statistics(ts);
-
-	tf = pop->get_current_trait_counts();
-	print_trait_counts(tf);
+	print_trait_counts(tf2);
 
 	timer.end("main");
 
