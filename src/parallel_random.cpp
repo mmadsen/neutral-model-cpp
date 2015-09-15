@@ -1,5 +1,4 @@
 #include <random>
-#include <omp.h>
 
 namespace CTModels {
 

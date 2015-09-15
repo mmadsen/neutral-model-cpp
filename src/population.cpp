@@ -7,7 +7,6 @@
 #include <boost/format.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/logger.h>
-#include <omp.h>
 #include <memory>
 
 #include "population.h"
